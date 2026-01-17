@@ -1,0 +1,497 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"> 
+<html lang="ko">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>아이덴티티 멤버 소트</title>
+
+<script type="text/javascript">
+/*********************************************************
+ * 정렬할 항목(멤버 리스트)
+ *********************************************************/
+var namMember = new Array(
+  "<br>김도훈</br>",
+  "<br>김희주</br>",
+  "<br>최태인</br>",
+  "<br>이재영</br>",
+  "<br>김주호</br>",
+  "<br>남지운</br>",
+  "<br>이환희</br>",
+  "<br>이청명</br>",
+  "<br>토와</br>",
+  "<br>이규혁</br>",
+  "<br>박누리</br>",
+  "<br>김성준</br>",
+  "<br>한예준</br>",
+  "<br>최경빈</br>",
+  "<br>황은수</br>",
+ );
+
+/*********************************************************
+ * 소트 로직(원형 유지)
+ *********************************************************/
+var lstMember = new Array();
+var parent = new Array();
+var equal = new Array();
+var rec = new Array();
+var cmp1, cmp2;
+var head1, head2;
+var nrec;
+
+var totalSize;
+var finishSize;
+var finishFlag;
+
+function initList(){
+  var n = 0;
+  var mid;
+  var i;
+
+  // 정렬할 배열
+  lstMember[n] = new Array();
+  for (i=0; i<namMember.length; i++) {
+    lstMember[n][i] = i;
+  }
+  parent[n] = -1;
+  totalSize = 0;
+  n++;
+
+  for (i=0; i<lstMember.length; i++) {
+    if (lstMember[i].length >= 2) {
+      mid = Math.ceil(lstMember[i].length / 2);
+
+      lstMember[n] = new Array();
+      lstMember[n] = lstMember[i].slice(0, mid);
+      totalSize += lstMember[n].length;
+      parent[n] = i;
+      n++;
+
+      lstMember[n] = new Array();
+      lstMember[n] = lstMember[i].slice(mid, lstMember[i].length);
+      totalSize += lstMember[n].length;
+      parent[n] = i;
+      n++;
+    }
+  }
+
+  // 저장용 배열
+  for (i=0; i<namMember.length; i++) rec[i] = 0;
+  nrec = 0;
+
+  // 동점(무승부) 저장 리스트
+  for (i=0; i<=namMember.length; i++) equal[i] = -1;
+
+  cmp1 = lstMember.length - 2;
+  cmp2 = lstMember.length - 1;
+  head1 = 0;
+  head2 = 0;
+  finishSize = 0;
+  finishFlag = 0;
+
+  // 결과/카드 초기화
+  var tc = document.getElementById("topCardWrap");
+  if (tc) tc.innerHTML = "";
+  var rf = document.getElementById("resultField");
+  if (rf) rf.innerHTML = "";
+
+  // 비교 화면 다시 표시(안정적: display 제어)
+  var cw = document.getElementById("compareWrap");
+  if (cw) cw.style.display = "";
+
+  // 버튼 텍스트 원복
+  var pr = document.getElementById("progress");
+  if (pr) pr.innerHTML = "진행도 0%";
+
+  updateProgress();
+}
+
+function updateProgress(){
+  var percent = 0;
+  if (totalSize > 0) percent = Math.floor(finishSize * 100 / totalSize);
+  var el = document.getElementById("progress");
+  if (el) el.innerHTML = "진행도 " + percent + "%";
+}
+
+// ✅ 선택 래퍼: 미세 진동 + 실제 선택 처리
+function choose(flag){
+  if (finishFlag != 0) return;
+
+  // 미세 진동 (지원 기기에서만)
+  try {
+    if (navigator && navigator.vibrate) navigator.vibrate(18);
+  } catch(e) {}
+
+  sortList(flag);
+}
+
+// flag: -1(왼쪽 선택), 0(동점), 1(오른쪽 선택)
+function sortList(flag){
+  var i;
+
+  // rec에 저장
+  if (flag < 0) {
+    rec[nrec] = lstMember[cmp1][head1];
+    head1++;
+    nrec++;
+    finishSize++;
+
+    while (equal[rec[nrec-1]] != -1) {
+      rec[nrec] = lstMember[cmp1][head1];
+      head1++;
+      nrec++;
+      finishSize++;
+    }
+  }
+  else if (flag > 0) {
+    rec[nrec] = lstMember[cmp2][head2];
+    head2++;
+    nrec++;
+    finishSize++;
+
+    while (equal[rec[nrec-1]] != -1) {
+      rec[nrec] = lstMember[cmp2][head2];
+      head2++;
+      nrec++;
+      finishSize++;
+    }
+  }
+  else {
+    // (동점 UI는 없지만, 로직 유지)
+    rec[nrec] = lstMember[cmp1][head1];
+    head1++;
+    nrec++;
+    finishSize++;
+
+    while (equal[rec[nrec-1]] != -1) {
+      rec[nrec] = lstMember[cmp1][head1];
+      head1++;
+      nrec++;
+      finishSize++;
+    }
+
+    equal[rec[nrec-1]] = lstMember[cmp2][head2];
+
+    rec[nrec] = lstMember[cmp2][head2];
+    head2++;
+    nrec++;
+    finishSize++;
+
+    while (equal[rec[nrec-1]] != -1) {
+      rec[nrec] = lstMember[cmp2][head2];
+      head2++;
+      nrec++;
+      finishSize++;
+    }
+  }
+
+  // 한쪽 리스트를 다 읽었을 때 남은 것 복사
+  if (head1 < lstMember[cmp1].length && head2 == lstMember[cmp2].length) {
+    while (head1 < lstMember[cmp1].length) {
+      rec[nrec] = lstMember[cmp1][head1];
+      head1++;
+      nrec++;
+      finishSize++;
+    }
+  }
+  else if (head1 == lstMember[cmp1].length && head2 < lstMember[cmp2].length) {
+    while (head2 < lstMember[cmp2].length) {
+      rec[nrec] = lstMember[cmp2][head2];
+      head2++;
+      nrec++;
+      finishSize++;
+    }
+  }
+
+  // 부모 리스트 갱신
+  if (head1 == lstMember[cmp1].length && head2 == lstMember[cmp2].length) {
+    for (i=0; i<lstMember[cmp1].length + lstMember[cmp2].length; i++) {
+      lstMember[parent[cmp1]][i] = rec[i];
+    }
+    lstMember.pop();
+    lstMember.pop();
+    cmp1 = cmp1 - 2;
+    cmp2 = cmp2 - 2;
+    head1 = 0;
+    head2 = 0;
+
+    // 새 비교 전에 rec 초기화
+    if (head1 == 0 && head2 == 0) {
+      for (i=0; i<namMember.length; i++) rec[i] = 0;
+      nrec = 0;
+    }
+  }
+
+  updateProgress();
+
+  // 끝났으면 결과 표시
+  if (cmp1 < 0) {
+    var pr = document.getElementById("progress");
+    if (pr) pr.innerHTML = "정렬 완료!";
+    showResult();
+    finishFlag = 1;
+  } else {
+    showImage();
+  }
+}
+
+// 결과 표시 + 1위 카드(펄스) + 비교영역 숨김(안정적: display:none)
+function showResult(){
+  // ✅ 결과 페이지에서 비교(선택) 영역 숨기기
+  var cw = document.getElementById("compareWrap");
+  if (cw) cw.style.display = "none";
+
+  var ranking = 1;
+  var sameRank = 1;
+  var str = "";
+  var i;
+
+  // 1위 카드
+  var topIdx = lstMember[0][0];
+  var topName = namMember[topIdx];
+
+  var card =
+    "<div id='topCard'>" +
+      "<div class='badge'>🏆 1위</div>" +
+      "<div class='song'>" + topName + "</div>" +
+    "</div>";
+
+  var tc = document.getElementById("topCardWrap");
+  if (tc) tc.innerHTML = card;
+
+  // 결과 테이블
+  str += "<table id='resultTable'>";
+  str += "<tr><th>순위</th><th>이름</th></tr>";
+
+  for (i=0; i<namMember.length; i++) {
+    str += "<tr><td class='rankCell'>" + ranking + "</td><td class='nameCell'>" +
+           namMember[lstMember[0][i]] + "</td></tr>";
+
+    if (i < namMember.length - 1) {
+      if (equal[lstMember[0][i]] == lstMember[0][i+1]) {
+        sameRank++;
+      } else {
+        ranking += sameRank;
+        sameRank = 1;
+      }
+    }
+  }
+  str += "</table>";
+
+  var rf = document.getElementById("resultField");
+  if (rf) rf.innerHTML = str;
+}
+
+// 비교 화면 표시
+function showImage(){
+  var leftStr = namMember[lstMember[cmp1][head1]];
+  var rightStr = namMember[lstMember[cmp2][head2]];
+
+  document.getElementById("leftField").innerHTML = leftStr;
+  document.getElementById("rightField").innerHTML = rightStr;
+}
+
+// 다시하기
+function resetSort(){
+  initList();
+  showImage();
+}
+</script>
+
+<style type="text/css">
+/* 전체 테마 */
+body{
+  background-color:#ffffff;
+  color:#020202;
+  font-family:'굴림', Gulim, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* 가운데 정렬용 래퍼 */
+#wrap{
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 0 24px 0;
+}
+
+/* 상단 타이틀/진행도 */
+#battleNumber{
+  text-align:center;
+  padding: 14px 0 8px 0;
+}
+#title{
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+#progress{
+  font-size: 15px;
+  opacity: 0.9;
+}
+
+/* 비교 영역(선택 화면) */
+#mainTable{
+  width: 420px;
+  margin: 0 auto;
+  border-collapse: separate;
+  border-spacing: 14px 10px;
+}
+
+/* td는 table-cell 유지(세로로 내려오는 현상 방지) */
+.choiceCell{
+  padding: 0;
+}
+
+/* 실제 선택 박스는 div에 flex 적용 (세로/가로 중앙 정확) */
+.choiceBox{
+  width: 200px;
+  height: 240px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1.5px solid #020202;
+  background-color: #ffffff;
+  cursor: pointer;
+
+  font-size: 18px;
+  line-height: 1.3;
+  text-align: center;
+
+  transition: all 0.15s ease-in-out;
+
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
+  touch-action: manipulation;
+}
+
+/* hover */
+.choiceBox:hover{
+  background-color: #ffffff;
+}
+
+/* click */
+.choiceBox:active{
+  transform: scale(0.95);
+}
+
+/* 1위 카드 */
+#topCard{
+  width: 420px;
+  margin: 14px auto 12px auto;
+  padding: 14px 16px;
+  border: 2px solid #020202;
+  background-color: #ffffff;
+  border-radius: 12px;
+}
+
+#topCard .badge{
+  font-size: 13px;
+  font-weight: bold;
+  opacity: 0.9;
+  margin-bottom: 6px;
+}
+
+#topCard .song{
+  font-size: 22px;
+  font-weight: bold;
+  line-height: 1.25;
+}
+
+/* 결과 테이블 */
+#resultTable{
+  margin: 0 auto;
+  border-collapse: collapse;
+  font-size: 15px;
+  min-width: 340px;
+}
+#resultTable th, #resultTable td{
+  border: 1.5px solid #020202;
+  padding: 8px 10px;
+}
+.rankCell{
+  text-align: right;
+  width: 60px;
+}
+.nameCell{
+  text-align: left;
+}
+
+/* 다시하기 버튼 */
+#resetBtn{
+  margin: 12px auto 0 auto;
+  padding: 10px 14px;
+  border: 1.5px solid #020202;
+  background: #ffffff;
+  color: #020202;
+  font-family:'굴림', Gulim, sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: all 0.15s ease-in-out;
+}
+#resetBtn:hover{
+  background-color: #ffffff;
+}
+#resetBtn:active{
+  transform: scale(0.97);
+}
+
+/* 모바일 최적화 */
+@media (max-width: 480px){
+  #mainTable{ width: 380px; }
+  .choiceBox{
+    width: 180px;
+    height: 260px;
+    font-size: 19px;
+  }
+  #topCard{ width: 92%; }
+  #title{ font-size: 24px; }
+  #progress{ font-size: 16px; }
+  #resultTable{ font-size: 16px; }
+}
+</style>
+</head>
+
+<body>
+<div id="wrap">
+
+  <!-- ✅ 비교(선택) 영역: 결과에서 display:none 처리(안정적) -->
+  <div id="compareWrap">
+    <table id="mainTable" align="center">
+      <tr>
+        <td id="battleNumber" colspan="2">
+          <div id="title">아이덴티티 멤버 소트</div>
+          <div id="progress">진행도 0%</div>
+        </td>
+      </tr>
+      <tr>
+        <td class="choiceCell" onclick="choose(-1);">
+          <div id="leftField" class="choiceBox">&nbsp;</div>
+        </td>
+        <td class="choiceCell" onclick="choose(1);">
+          <div id="rightField" class="choiceBox">&nbsp;</div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- 1위 카드 / 결과 -->
+  <div id="topCardWrap" style="text-align:center;"></div>
+  <div id="resultField" style="text-align:center;"></div>
+
+  <!-- 다시하기 -->
+  <button id="resetBtn" type="button" onclick="resetSort();">다시하기</button>
+
+</div>
+
+<script type="text/javascript">
+initList();
+showImage();
+</script>
+
+</body>
+</html>
+
